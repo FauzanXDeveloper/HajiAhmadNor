@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>My Family Chart</title>
+  
+  <!-- Include D3 and Family Chart CSS -->
+  <script src="https://unpkg.com/d3@6"></script>
+  <script type="module" src="https://unpkg.com/family-chart@0.2.1"></script>
+  <link rel="stylesheet" href="https://unpkg.com/family-chart@0.2.1/dist/styles/family-chart.css">
+  <link rel="stylesheet" href="">
+</head>
+<body>
+
+  <div id="FamilyChart" class="f3" style="width:100%;height:900px;margin:auto;background-color:rgb(33,33,33);color:#fff;"></div>
+  
+  <!-- Linking all the .js files from the src, view, and elements folders -->
+  <script src="src/createChart.js"></script>
+  <script src="src/createStore.js"></script>
+  <script src="src/handlers.js"></script>
+  <script src="src/elements.js"></script>
+  <script src="src/view.js"></script>
+
+  <!-- view.js files -->
+  <script src="src/view/view.cards.js"></script>
+  <script src="src/view/view.handlers.js"></script>
+  <script src="src/view/view.html.cards.js"></script>
+  <script src="src/view/view.html.component.js"></script>
+  <script src="src/view/view.html.handlers.js"></script>
+  <script src="src/view/view.links.js"></script>
+  <script src="src/view/view.svg.js"></script>
+
+  <!-- elements.js files -->
+  <script src="src/view/elements/Card.defs.js"></script>
+  <script src="src/view/elements/Card.elements.js"></script>
+  <script src="src/view/elements/Card.icons.js"></script>
+  <script src="src/view/elements/Card.js"></script>
+  <script src="src/view/elements/Card.templates.js"></script>
+  <script src="src/view/elements/CardHtml.js"></script>
+  <script src="src/view/elements/Form.js"></script>
+  <script src="src/view/elements/Link.js"></script>
+
+  <!-- Main Script for Initializing the Family Tree -->
+  <script type="module">
+    fetch('https://donatso.github.io/family-chart-doc/data/data-staljin.json')
+      .then(res => res.json())
+      .then(data => create(data))
+      .catch(err => console.error(err))
+
+    function create(data) {
+      const cont = document.querySelector("div#FamilyChart");
+      const store = f3.createStore({
+        data,
+        node_separation: 250,
+        level_separation: 150
+      });
+
+      const svg = f3.createSvg(cont);
+      const Card = f3.elements.Card({
+        store,
+        svg,
+        card_dim: {w:220, h:70, text_x:75, text_y:15, img_w:60, img_h:60, img_x:5, img_y:5},
+        card_display: [d => d.data.label || '', d => d.data.desc || ''],
+        mini_tree: true,
+        link_break: false
+      });
+
+      store.setOnUpdate(props => f3.view(store.getTree(), svg, Card, props || {}));
+      store.updateTree({initial: true});
+
+      // Hover and Card Click Events
+      svg.selectAll('.f3-card')
+        .on('mouseover', function(event, d) {
+          d3.select(this).style('transform', 'scale(1.1)');
+        })
+        .on('mouseout', function(event, d) {
+          d3.select(this).style('transform', 'scale(1)');
+        })
+        .on('click', function(event, d) {
+          displayPopup(d);
+        });
+
+      svg.selectAll('.f3-link')
+        .on('mouseover', function(event, d) {
+          d3.select(this).style('stroke', 'red').style('stroke-width', 3);
+        })
+        .on('mouseout', function(event, d) {
+          d3.select(this).style('stroke', 'black').style('stroke-width', 1);
+        });
+
+      setTimeout(() => {
+        const tree = store.getTree();
+        const datum = tree.data[Math.floor(tree.data.length * Math.random())];  // Random card
+        f3.handlers.cardToMiddle({datum, svg, svg_dim: svg.getBoundingClientRect(), transition_time: 2000});
+      }, 4000);
+    }
+
+    function displayPopup(data) {
+      const popup = document.getElementById("popupContainer");
+      document.getElementById("popupName").innerText = `Name: ${data.data.label || 'N/A'}`;
+      document.getElementById("popupRelationship").innerText = `Relationship: ${data.data.desc || 'N/A'}`;
+      document.getElementById("popupDescription").innerText = `Description: ${data.data.description || 'No description available'}`;
+      popup.style.display = 'block';
+    }
+  </script>
+
+  <!-- Popup for Displaying Family Member Info -->
+  <div id="popupContainer" style="display: none; position: fixed; right: 0; top: 0; width: 300px; background-color: #fff; padding: 20px;">
+    <h2>Family Member Details</h2>
+    <p id="popupName"></p>
+    <p id="popupRelationship"></p>
+    <p id="popupDescription"></p>
+  </div>
+</body>
+</html>
